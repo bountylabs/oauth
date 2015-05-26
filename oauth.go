@@ -1244,23 +1244,14 @@ func (c *Consumer) getBody(method, url string, oauthParams *OrderedParams) (*str
 
 // HTTPExecuteError signals that a call to httpExecute failed.
 type HTTPExecuteError struct {
-	// RequestHeaders provides a stringified listing of request headers.
-	RequestHeaders string
-	// ResponseBodyBytes is the response read into a byte slice.
-	ResponseBodyBytes []byte
-	// Status is the status code string response.
-	Status string
-	// StatusCode is the parsed status code.
-	StatusCode int
+	Response     *http.Response
+	ResponseBody []byte
+	Request      *http.Request
 }
 
 // Error provides a printable string description of an HTTPExecuteError.
 func (e HTTPExecuteError) Error() string {
-	return "HTTP response is not 200/OK as expected. Actual response: \n" +
-		"\tResponse Status: '" + e.Status + "'\n" +
-		"\tResponse Code: " + strconv.Itoa(e.StatusCode) + "\n" +
-		"\tResponse Body: " + string(e.ResponseBodyBytes) + "\n" +
-		"\tRequest Headers: " + e.RequestHeaders
+	return fmt.Sprintf("Request %s, Failed w/ status code %s", e.Request.URL, e.Response.StatusCode)
 }
 
 func (c *Consumer) httpExecute(
@@ -1322,10 +1313,9 @@ func (c *Consumer) httpExecute(
 		bytes, _ := ioutil.ReadAll(resp.Body)
 
 		return resp, HTTPExecuteError{
-			RequestHeaders:    debugHeader,
-			ResponseBodyBytes: bytes,
-			Status:            resp.Status,
-			StatusCode:        resp.StatusCode,
+			ResponseBody: bytes,
+			Response:     resp,
+			Request:      req,
 		}
 	}
 	return resp, err
